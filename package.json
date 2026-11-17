@@ -1,0 +1,13 @@
+{
+  "name": "docuagent-ai-2026",
+  "version": "1.0.0",
+  "description": "Sistema Especialista Documental com Bloqueio de Escopo, Plano B e Visualização Bilíngue",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["ai", "documentos", "rag", "plano-b", "bilingue"],
+  "author": "Felipe 2026",
+  "license": "MIT"
+}

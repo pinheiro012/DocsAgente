@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DocuAgent AI — Sistema Especialista Documental</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="theme-dark">
+  <div class="app-container">
+    
+    <!-- SIDEBAR: Gerenciador Documental & Configurações -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-icon"><i class="fa-solid fa-file-shield"></i></div>
+          <div class="brand-text">
+            <h2>DocuAgent</h2>
+            <span class="badge-tag">IA DOCUMENTAL 2026</span>
+          </div>
+        </div>
+        <button id="theme-toggle" class="icon-btn" title="Alternar tema claro/escuro">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+
+      <!-- Upload Zone -->
+      <div class="upload-section">
+        <div class="section-title">
+          <span><i class="fa-solid fa-cloud-arrow-up"></i> Adicionar Documento</span>
+        </div>
+        <div class="drop-zone" id="drop-zone">
+          <i class="fa-solid fa-file-import drop-icon"></i>
+          <p class="drop-text">Arraste arquivos ou <strong>clique aqui</strong></p>
+          <span class="drop-hint">PDF, DOCX, TXT, MD, JSON (máx. 25MB)</span>
+          <input type="file" id="file-input" multiple accept=".pdf,.docx,.txt,.md,.json,.csv" hidden>
+        </div>
+      </div>
+
+      <!-- Arquivo Ativo Selector -->
+      <div class="active-file-card">
+        <div class="card-label"><i class="fa-solid fa-bullseye"></i> ARQUIVO SELECIONADO</div>
+        <div class="selected-file-info" id="selected-file-display">
+          <i class="fa-solid fa-folder-open text-muted"></i>
+          <span class="file-name text-muted">Nenhum arquivo ativo</span>
+        </div>
+        <span class="card-subtext" id="active-file-subtext">Selecione na lista abaixo para consultar/analisar</span>
+      </div>
+
+      <!-- Base Documental Autorizada -->
+      <div class="docs-section">
+        <div class="section-title-between">
+          <span><i class="fa-solid fa-database"></i> Base Documental (<span id="doc-count">0</span>)</span>
+          <button id="clear-all-docs" class="text-btn danger-hover" title="Limpar base">Limpar</button>
+        </div>
+        <div class="docs-list" id="docs-list">
+          <div class="empty-docs-msg">
+            <i class="fa-regular fa-folder-blank"></i>
+            <p>Nenhum documento na base.<br>Faça upload para iniciar.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar Footer / Configurações -->
+      <div class="sidebar-footer">
+        <button id="open-settings-btn" class="settings-btn">
+          <i class="fa-solid fa-sliders"></i>
+          <span>Configurar Motor IA / Chave</span>
+        </button>
+        <div class="system-status">
+          <span class="status-indicator online"></span>
+          <span id="current-engine-label">Motor: Local / Simulação</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      
+      <!-- Top Bar com Abas de Modos -->
+      <header class="topbar">
+        <nav class="tabs-nav" id="tabs-nav">
+          <button class="tab-btn active" data-tab="analisar">
+            <i class="fa-solid fa-magnifying-glass-chart"></i>
+            <span>Analisar</span>
+          </button>
+          <button class="tab-btn" data-tab="organizar">
+            <i class="fa-solid fa-folder-tree"></i>
+            <span>Organizar</span>
+          </button>
+          <button class="tab-btn" data-tab="criar">
+            <i class="fa-solid fa-feather-pointed"></i>
+            <span>Criar</span>
+          </button>
+          <button class="tab-btn" data-tab="revisar">
+            <i class="fa-solid fa-spell-check"></i>
+            <span>Revisar</span>
+          </button>
+          <button class="tab-btn" data-tab="comparar">
+            <i class="fa-solid fa-code-compare"></i>
+            <span>Comparar</span>
+          </button>
+          <button class="tab-btn highlight-tab" data-tab="consultar">
+            <i class="fa-solid fa-lock"></i>
+            <span>Consultar Arquivo</span>
+            <span class="tab-pill">Restrito</span>
+          </button>
+          <button class="tab-btn" data-tab="conhecimento">
+            <i class="fa-solid fa-book-bookmark"></i>
+            <span>Conhecimento</span>
+          </button>
+          <button class="tab-btn" data-tab="traducao">
+            <i class="fa-solid fa-language"></i>
+            <span>Tradução</span>
+            <span class="tab-pill pill-alt">Bilíngue</span>
+          </button>
+        </nav>
+      </header>
+
+      <!-- Sub-header com Descrição e Regras do Modo Atual -->
+      <section class="mode-banner" id="mode-banner">
+        <div class="mode-info">
+          <div class="mode-badge" id="mode-badge">MODO: ANALISAR</div>
+          <h1 id="mode-title">Análise Aprofundada de Documentos</h1>
+          <p id="mode-desc">Interpretação minuciosa, extração de dados estruturados, pontos-chave, identificação de riscos e inconsistências factuais.</p>
+        </div>
+        <div class="mode-rule-chip" id="mode-rule-chip">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span id="mode-rule-text">Fidelidade rigorosa às fontes • Zero alucinação</span>
+        </div>
+      </section>
+
+      <!-- Painel Específico da Aba (Widgets específicos quando aplicável) -->
+      <section class="tab-panel-container">
+        
+        <!-- Painel Específico: Comparar -->
+        <div class="special-panel hidden" id="panel-comparar">
+          <div class="compare-selector-grid">
+            <div class="compare-box">
+              <label><i class="fa-solid fa-file-circle-check"></i> Documento Base (A):</label>
+              <select id="compare-doc-a" class="custom-select">
+                <option value="">Selecione o primeiro documento...</option>
+              </select>
+            </div>
+            <div class="compare-icon-center">
+              <i class="fa-solid fa-arrow-right-arrow-left"></i>
+            </div>
+            <div class="compare-box">
+              <label><i class="fa-solid fa-file-circle-plus"></i> Documento Comparado (B):</label>
+              <select id="compare-doc-b" class="custom-select">
+                <option value="">Selecione o segundo documento...</option>
+              </select>
+            </div>
+          </div>
+          <button id="run-compare-btn" class="primary-btn compare-action-btn">
+            <i class="fa-solid fa-scale-balanced"></i> Comparar Cláusulas, Datas e Valores
+          </button>
+        </div>
+
+        <!-- Painel Específico: Criar -->
+        <div class="special-panel hidden" id="panel-criar">
+          <div class="create-fields-grid">
+            <div class="field-group">
+              <label>Tipo de Documento:</label>
+              <input type="text" id="create-type" placeholder="Ex: Contrato de Prestação, Relatório Técnico, Procuração" class="custom-input">
+            </div>
+            <div class="field-group">
+              <label>Público-Alvo:</label>
+              <input type="text" id="create-audience" placeholder="Ex: Diretoria, Clientes, Departamento Jurídico" class="custom-input">
+            </div>
+            <div class="field-group full-width">
+              <label>Objetivo Principal & Informações Essenciais:</label>
+              <textarea id="create-objective" placeholder="Descreva os dados, termos obrigatórios e finalidade..." rows="2" class="custom-textarea"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Painel Específico: Tradução (Visualização Bilíngue Pareada) -->
+        <div class="special-panel hidden" id="panel-traducao">
+          <div class="bilingual-header">
+            <div class="lang-tag"><i class="fa-solid fa-globe"></i> Idioma Detectado: <strong id="detected-lang-badge">Português</strong></div>
+            <div class="lang-tag"><i class="fa-solid fa-flag"></i> Idioma Padrão de Tradução: <strong>🇧🇷 Português</strong></div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Feed de Mensagens / Chat da Aba -->
+      <section class="chat-feed-container">
+        
+        <!-- Banner de Confirmação do PLANO B (Mecanismo de Desambiguação) -->
+        <div class="plano-b-banner hidden" id="plano-b-box">
+          <div class="plano-b-content">
+            <i class="fa-solid fa-triangle-exclamation plano-b-icon"></i>
+            <div class="plano-b-text">
+              <strong>Plano B — Confirmação de Intenção:</strong>
+              <p id="plano-b-message">Acho que você quis dizer: "..." É isso mesmo?</p>
+            </div>
+          </div>
+          <div class="plano-b-actions">
+            <button id="plano-b-confirm-btn" class="btn-confirm"><i class="fa-solid fa-check"></i> Sim, executar</button>
+            <button id="plano-b-cancel-btn" class="btn-cancel"><i class="fa-solid fa-xmark"></i> Não, quero reformular</button>
+          </div>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+          <!-- Mensagem de Boas-Vindas Inicial -->
+          <div class="welcome-card">
+            <div class="welcome-head">
+              <div class="welcome-logo"><i class="fa-solid fa-robot"></i></div>
+              <div>
+                <h2>Olá! Eu sou o DocuAgent</h2>
+                <p>Analiso, organizo, crio, reviso, comparo e consulto seus documentos.</p>
+              </div>
+            </div>
+
+            <!-- Status da conexão com o agente -->
+            <div class="conn-card" id="conn-card" data-state="checking">
+              <div class="conn-icon"><i class="fa-solid fa-cloud"></i></div>
+              <div class="conn-info">
+                <div class="conn-title">
+                  <span id="conn-engine">Azure AI Foundry</span>
+                  <span class="conn-pill" id="conn-pill"><span class="conn-dot"></span><span id="conn-pill-text">Verificando...</span></span>
+                </div>
+                <div class="conn-meta" id="conn-meta">Conectando ao agente...</div>
+              </div>
+              <button class="conn-retry hidden" id="conn-retry" title="Testar conexão de novo"><i class="fa-solid fa-rotate-right"></i></button>
+            </div>
+
+            <div class="feature-grid">
+              <div class="feature-tile">
+                <div class="feature-ico ico-blue"><i class="fa-solid fa-lock"></i></div>
+                <div><strong>Consultar Arquivo</strong><span>Respostas só com base no documento ativo. Se não estiver no texto: <em>"não sei"</em>.</span></div>
+              </div>
+              <div class="feature-tile">
+                <div class="feature-ico ico-amber"><i class="fa-solid fa-shield-halved"></i></div>
+                <div><strong>Bloqueio de Escopo</strong><span>Perguntas sem relação com documentos são bloqueadas.</span></div>
+              </div>
+              <div class="feature-tile">
+                <div class="feature-ico ico-green"><i class="fa-solid fa-language"></i></div>
+                <div><strong>Exibição Bilíngue</strong><span>Original e tradução em português lado a lado.</span></div>
+              </div>
+              <div class="feature-tile">
+                <div class="feature-ico ico-purple"><i class="fa-solid fa-route"></i></div>
+                <div><strong>Plano B</strong><span>Corrige erros de digitação e confirma pedidos vagos antes de executar.</span></div>
+              </div>
+            </div>
+
+            <div class="welcome-steps">
+              <span><b>1</b> Envie ou selecione um documento na barra lateral</span>
+              <span><b>2</b> Escolha a aba de operação</span>
+              <span><b>3</b> Faça sua pergunta</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Input Bar -->
+      <footer class="chat-input-bar">
+        <!-- Ações Rápidas por Modo -->
+        <div class="quick-prompts-bar" id="quick-prompts">
+          <span class="quick-title">Sugestões rápidas:</span>
+          <button class="quick-chip" data-prompt="Gere um resumo estruturado destacando os principais tópicos.">Resumo Estruturado</button>
+          <button class="quick-chip" data-prompt="Identifique riscos, obrigações e cláusulas críticas no documento.">Riscos & Cláusulas</button>
+          <button class="quick-chip" data-prompt="Extraia todas as datas, valores, prazos e partes envolvidas.">Extrair Dados & Datas</button>
+          <button class="quick-chip" data-prompt="Existe alguma inconsistência ou contradição interna neste arquivo?">Verificar Inconsistências</button>
+        </div>
+
+        <form class="input-form" id="chat-form">
+          <div class="input-wrapper">
+            <textarea 
+              id="user-input" 
+              placeholder="Digite sua pergunta ou instrução documental (Shift+Enter para nova linha)..." 
+              rows="1"
+              autofocus
+            ></textarea>
+            
+            <div class="input-actions">
+              <button type="button" id="doc-quick-btn" class="action-icon-btn" title="Ver documento ativo">
+                <i class="fa-solid fa-file-lines"></i>
+              </button>
+              <button type="submit" id="send-btn" class="send-btn" title="Enviar mensagem">
+                <i class="fa-solid fa-paper-plane"></i>
+              </button>
+            </div>
+          </div>
+        </form>
+        <div class="input-disclaimer">
+          DocuAgent IA v2.6 • Precisão documental objetiva &gt;95% • Modo restrito com isolamento de contexto
+        </div>
+      </footer>
+
+    </main>
+
+  </div>
+
+  <!-- MODAL: Configurações de API & Motor -->
+  <div class="modal-overlay hidden" id="settings-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-sliders"></i> Configurações do Motor de IA</h3>
+        <button class="close-modal-btn" id="close-settings-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Provedor de Inteligência Artificial:</label>
+          <select id="ai-provider" class="custom-select">
+            <option value="foundry">Azure AI Foundry — Agente green-agent-445575jz9p (Recomendado)</option>
+            <option value="local">Motor Local / Análise Embutida (Sem Chave Externa)</option>
+            <option value="gemini">Google Gemini API (Gemini 2.5 / 1.5 Flash)</option>
+            <option value="openai">OpenAI API (GPT-4o / GPT-4o-mini)</option>
+            <option value="groq">Groq (Llama-3 / Mixtral)</option>
+            <option value="custom">API Customizada / Servidor Local (Ollama / vLLM)</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="api-key-group">
+          <label>Chave de API (API Key):</label>
+          <div class="password-input-wrapper">
+            <input type="password" id="api-key-input" placeholder="Cole sua chave aqui..." class="custom-input">
+            <button type="button" id="toggle-key-visibility" class="icon-btn"><i class="fa-regular fa-eye"></i></button>
+          </div>
+          <span class="field-hint">A chave fica armazenada apenas no seu navegador localmente.</span>
+        </div>
+
+        <div class="form-group hidden" id="custom-url-group">
+          <label>URL Base da API (Endpoint):</label>
+          <input type="text" id="custom-url-input" placeholder="http://localhost:11434/v1" class="custom-input">
+        </div>
+
+        <div class="form-group">
+          <label>Modelo Específico (Opcional):</label>
+          <input type="text" id="ai-model-input" placeholder="Ex: gemini-2.0-flash, gpt-4o-mini" class="custom-input">
+        </div>
+
+        <div class="callout-box">
+          <i class="fa-solid fa-circle-info"></i>
+          <div>
+            <strong>Modo Local / Embutido Pronto para Uso:</strong>
+            <p>Se você não tiver chave no momento, o sistema executa o motor semântico local integrado, processando documentos com as regras de escopo, Plano B e isolamento da aba Consultar Arquivo!</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="save-settings-btn" class="primary-btn">Salvar Configurações</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Pré-visualizador de Documento -->
+  <div class="modal-overlay hidden" id="doc-preview-modal">
+    <div class="modal-card modal-large">
+      <div class="modal-header">
+        <h3 id="preview-title"><i class="fa-solid fa-file-lines"></i> Visualizador do Documento</h3>
+        <button class="close-modal-btn" id="close-preview-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body doc-preview-body">
+        <div class="preview-meta" id="preview-meta">
+          <!-- Meta tags inseridas via JS -->
+        </div>
+        <pre class="preview-content" id="preview-content">Carregando conteúdo...</pre>
+      </div>
+      <div class="modal-footer between">
+        <span class="text-muted" id="preview-stats">0 caracteres • 0 palavras</span>
+        <button id="set-as-active-btn" class="primary-btn"><i class="fa-solid fa-bullseye"></i> Definir como Arquivo Ativo</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
