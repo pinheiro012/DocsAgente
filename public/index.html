@@ -73,7 +73,7 @@
         </button>
         <div class="system-status">
           <span class="status-indicator online"></span>
-          <span id="current-engine-label">Motor: Local / Simulação</span>
+          <span id="current-engine-label">Motor: Azure AI Foundry</span>
         </div>
       </div>
     </aside>
@@ -209,51 +209,36 @@
 
         <div class="chat-messages" id="chat-messages">
           <!-- Mensagem de Boas-Vindas Inicial -->
-          <div class="welcome-card">
-            <div class="welcome-head">
-              <div class="welcome-logo"><i class="fa-solid fa-robot"></i></div>
-              <div>
-                <h2>Olá! Eu sou o DocuAgent</h2>
-                <p>Analiso, organizo, crio, reviso, comparo e consulto seus documentos.</p>
+          <div class="message system-msg">
+            <div class="msg-avatar"><i class="fa-solid fa-robot"></i></div>
+            <div class="msg-body">
+              <div class="msg-header">
+                <span class="msg-sender">DocuAgent</span>
+                <span class="msg-badge">Sistema</span>
+                <span class="msg-time" id="init-time">Hoje</span>
               </div>
-            </div>
-
-            <!-- Status da conexão com o agente -->
-            <div class="conn-card" id="conn-card" data-state="checking">
-              <div class="conn-icon"><i class="fa-solid fa-cloud"></i></div>
-              <div class="conn-info">
-                <div class="conn-title">
-                  <span id="conn-engine">Azure AI Foundry</span>
-                  <span class="conn-pill" id="conn-pill"><span class="conn-dot"></span><span id="conn-pill-text">Verificando...</span></span>
+              <div class="msg-content">
+                <p>Olá! Sou o agente especializado em análise, organização, criação, revisão, comparação e consulta de documentos.</p>
+                <div class="features-mini-grid">
+                  <div class="feature-item">
+                    <i class="fa-solid fa-lock text-accent"></i>
+                    <strong>Consultar Arquivo:</strong> Respostas 100% restritas ao documento ativo. Se não estiver no texto, respondo exatamente <em>"não sei"</em>.
+                  </div>
+                  <div class="feature-item">
+                    <i class="fa-solid fa-shield-virus text-warning"></i>
+                    <strong>Bloqueio de Escopo:</strong> Perguntas externas sem relação documental são bloqueadas imediatamente.
+                  </div>
+                  <div class="feature-item">
+                    <i class="fa-solid fa-language text-success"></i>
+                    <strong>Exibição Bilíngue:</strong> Aba de tradução com visualização pareada (Original + Português).
+                  </div>
+                  <div class="feature-item">
+                    <i class="fa-solid fa-route text-info"></i>
+                    <strong>Plano B Ativo:</strong> Desambiguação inteligente de erros de digitação e confirmação antes de ações incertas.
+                  </div>
                 </div>
-                <div class="conn-meta" id="conn-meta">Conectando ao agente...</div>
+                <p class="mt-2 text-muted">Para começar, envie seus documentos na barra lateral e escolha a aba de operação desejada.</p>
               </div>
-              <button class="conn-retry hidden" id="conn-retry" title="Testar conexão de novo"><i class="fa-solid fa-rotate-right"></i></button>
-            </div>
-
-            <div class="feature-grid">
-              <div class="feature-tile">
-                <div class="feature-ico ico-blue"><i class="fa-solid fa-lock"></i></div>
-                <div><strong>Consultar Arquivo</strong><span>Respostas só com base no documento ativo. Se não estiver no texto: <em>"não sei"</em>.</span></div>
-              </div>
-              <div class="feature-tile">
-                <div class="feature-ico ico-amber"><i class="fa-solid fa-shield-halved"></i></div>
-                <div><strong>Bloqueio de Escopo</strong><span>Perguntas sem relação com documentos são bloqueadas.</span></div>
-              </div>
-              <div class="feature-tile">
-                <div class="feature-ico ico-green"><i class="fa-solid fa-language"></i></div>
-                <div><strong>Exibição Bilíngue</strong><span>Original e tradução em português lado a lado.</span></div>
-              </div>
-              <div class="feature-tile">
-                <div class="feature-ico ico-purple"><i class="fa-solid fa-route"></i></div>
-                <div><strong>Plano B</strong><span>Corrige erros de digitação e confirma pedidos vagos antes de executar.</span></div>
-              </div>
-            </div>
-
-            <div class="welcome-steps">
-              <span><b>1</b> Envie ou selecione um documento na barra lateral</span>
-              <span><b>2</b> Escolha a aba de operação</span>
-              <span><b>3</b> Faça sua pergunta</span>
             </div>
           </div>
         </div>
@@ -309,12 +294,10 @@
         <div class="form-group">
           <label>Provedor de Inteligência Artificial:</label>
           <select id="ai-provider" class="custom-select">
-            <option value="foundry">Azure AI Foundry — Agente green-agent-445575jz9p (Recomendado)</option>
+            <option value="azure">Azure AI Foundry (configurado no azure-config.json)</option>
             <option value="local">Motor Local / Análise Embutida (Sem Chave Externa)</option>
             <option value="gemini">Google Gemini API (Gemini 2.5 / 1.5 Flash)</option>
             <option value="openai">OpenAI API (GPT-4o / GPT-4o-mini)</option>
-            <option value="groq">Groq (Llama-3 / Mixtral)</option>
-            <option value="custom">API Customizada / Servidor Local (Ollama / vLLM)</option>
           </select>
         </div>
 

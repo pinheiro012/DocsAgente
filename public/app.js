@@ -9,9 +9,11 @@ const state = {
   documents: [],
   activeDocId: null,
   pendingPlanoB: null,
-  foundryConversations: {}, // uma conversa do Foundry por aba
+  azureResponseIds: {}, // continuidade da conversa com o agente, por aba
   config: {
-    provider: localStorage.getItem('docu_provider') || 'foundry',
+    // Provedores antigos/sem implementação (custom, groq) salvos no navegador voltam para o Azure
+    provider: ['azure', 'local', 'gemini', 'openai'].includes(localStorage.getItem('docu_provider'))
+      ? localStorage.getItem('docu_provider') : 'azure',
     apiKey: localStorage.getItem('docu_apikey') || '',
     customUrl: localStorage.getItem('docu_customurl') || 'http://localhost:11434/v1',
     model: localStorage.getItem('docu_model') || '',
@@ -190,135 +192,15 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function updateEngineLabel() {
-  const labels = { local: 'Motor: Local / Simulação', foundry: 'Motor: Azure AI Foundry' };
   const el = document.getElementById('current-engine-label');
-  if (el) el.textContent = labels[state.config.provider] || `Motor: ${state.config.provider.toUpperCase()}`;
-  if (state.config.provider === 'foundry') {
-    checkFoundryStatus();
-  } else {
-    const nomes = { local: 'Motor Local', gemini: 'Google Gemini', openai: 'OpenAI', groq: 'Groq', custom: 'API Customizada' };
-    const p = state.config.provider;
-    setConnState(p === 'local' ? 'local' : 'ok', p === 'local' ? 'Offline' : 'Ativo',
-      p === 'local' ? 'Simulação embutida, sem IA na nuvem. Troque em <b>Configurar Motor IA</b>.' : 'Usando a chave configurada no navegador.',
-      nomes[p] || p);
+  if (!el) return;
+  const p = state.config.provider;
+  el.textContent = p === 'local' ? 'Motor: Local / Simulação'
+    : p === 'azure' ? 'Motor: Azure AI Foundry'
+    : `Motor: ${p.toUpperCase()}`;
+  if (p === 'azure' && location.protocol === 'file:') {
+    appendSystemNotice('⚠️ Você abriu o <strong>index.html</strong> direto. Para usar o agente do Azure, rode <strong>iniciar.bat</strong> (ou <code>node server.js</code>) e acesse <strong>http://localhost:3000</strong>.');
   }
-}
-
-function setConnState(stateName, pill, metaHtml, engine) {
-  const card = document.getElementById('conn-card');
-  if (!card) return;
-  card.dataset.state = stateName;
-  document.getElementById('conn-pill-text').textContent = pill;
-  document.getElementById('conn-meta').innerHTML = metaHtml;
-  if (engine) document.getElementById('conn-engine').textContent = engine;
-  document.getElementById('conn-retry').classList.toggle('hidden', stateName === 'checking' || stateName === 'local');
-  const dot = document.querySelector('.system-status .status-indicator');
-  if (dot) dot.classList.toggle('online', stateName === 'ok' || stateName === 'local');
-}
-
-async function checkFoundryStatus() {
-  const retry = document.getElementById('conn-retry');
-  if (retry && !retry.dataset.bound) {
-    retry.dataset.bound = '1';
-    retry.onclick = async () => {
-      retry.classList.add('spinning');
-      await checkFoundryStatus();
-      retry.classList.remove('spinning');
-    };
-  }
-
-  if (location.protocol === 'file:') {
-    setConnState('error', 'Offline', 'Abra o site pelo <code>iniciar.bat</code> (http://localhost:3000) para usar o agente.', 'Azure AI Foundry');
-    return;
-  }
-  setConnState('checking', 'Verificando...', 'Conectando ao agente...', 'Azure AI Foundry');
-  try {
-    const r = await fetch('/api/foundry/status');
-    const st = await r.json();
-    if (st.ok) {
-      const conta = st.conta ? ` · <i class="fa-regular fa-user"></i> ${st.conta}` : '';
-      const versao = st.version && st.version !== 'padrão' ? ` · v${st.version}` : '';
-      setConnState('ok', 'Conectado', `<i class="fa-solid fa-robot"></i> <code>${st.agent}</code>${versao}${conta}`);
-    } else {
-      setConnState('error', 'Não conectado', st.error || 'Falha ao autenticar.');
-    }
-  } catch (e) {
-    setConnState('error', 'Servidor indisponível', 'Não foi possível falar com o servidor local. Ele está rodando?');
-  }
-}
-
-// Monta o contexto da aba atual e envia para o agente do Foundry
-function buildFoundryMessage(prompt, tab, activeDoc) {
-  const parts = [`[ABA ATUAL: ${(MODES_INFO[tab]?.badge || tab.toUpperCase())}]`];
-
-  if (tab === 'comparar') {
-    const a = state.documents.find(d => d.id === document.getElementById('compare-doc-a')?.value);
-    const b = state.documents.find(d => d.id === document.getElementById('compare-doc-b')?.value);
-    if (a) parts.push(`[DOCUMENTO A: "${a.name}"]\n${a.content}`);
-    if (b) parts.push(`[DOCUMENTO B: "${b.name}"]\n${b.content}`);
-  } else if (tab === 'conhecimento') {
-    const all = state.documents.map(d => `[DOCUMENTO: "${d.name}"]\n${d.content}`).join('\n\n');
-    if (all) parts.push(`[BASE DOCUMENTAL AUTORIZADA]\n${all}`);
-  } else if (tab === 'criar') {
-    const tipo = document.getElementById('create-type')?.value.trim();
-    const pub = document.getElementById('create-audience')?.value.trim();
-    const obj = document.getElementById('create-objective')?.value.trim();
-    parts.push(`[DADOS DO FORMULÁRIO]\nTipo de documento: ${tipo || '(não informado)'}\nPúblico-alvo: ${pub || '(não informado)'}\nObjetivo/dados: ${obj || '(não informado)'}`);
-    if (activeDoc) parts.push(`[ARQUIVO ATIVO: "${activeDoc.name}"]\n${activeDoc.content}`);
-  } else if (activeDoc) {
-    parts.push(`[ARQUIVO ATIVO: "${activeDoc.name}"]\n${activeDoc.content}`);
-  }
-
-  if (tab === 'consultar') {
-    parts.push('[REGRA: responda somente com base no ARQUIVO ATIVO. Se a resposta não estiver no arquivo, responda exatamente: "não sei"]');
-  }
-  if (tab === 'traducao') {
-    parts.push('[REGRA DE FORMATO: responda SOMENTE com JSON puro, sem markdown, no formato {"idioma":"<idioma detectado do usuário, em português>","original":"<sua resposta no idioma do usuário>","traducao":"<a mesma resposta em português do Brasil>"}]');
-  }
-
-  parts.push(`[SOLICITAÇÃO DO USUÁRIO]\n${prompt}`);
-  return parts.join('\n\n');
-}
-
-async function callFoundryAgent(prompt, tab, activeDoc) {
-  if (location.protocol === 'file:') {
-    throw new Error('abra o site pelo servidor Node (iniciar.bat) para usar o agente do Foundry');
-  }
-  const res = await fetch('/api/foundry/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      message: buildFoundryMessage(prompt, tab, activeDoc),
-      conversationId: state.foundryConversations[tab] || null
-    })
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-  if (data.conversationId) state.foundryConversations[tab] = data.conversationId;
-
-  let sources;
-  if (tab === 'comparar') sources = 'Documentos A e B';
-  else if (tab === 'conhecimento') sources = state.documents.map(d => d.name).join(', ');
-  else if (activeDoc) sources = activeDoc.name;
-
-  if (tab === 'traducao') {
-    return parseFoundryBilingual(data.text, prompt);
-  }
-  return { text: data.text, sources };
-}
-
-function parseFoundryBilingual(text, prompt) {
-  let lang = 'Detectado', original = text, pt = text;
-  try {
-    const m = text.match(/\{[\s\S]*\}/);
-    const j = JSON.parse(m ? m[0] : text);
-    lang = j.idioma || j.language || lang;
-    original = j.original || text;
-    pt = j.traducao || j.translation || original;
-  } catch { /* resposta não veio em JSON: mostra o texto nas duas colunas */ }
-  const badge = document.getElementById('detected-lang-badge');
-  if (badge) badge.textContent = lang;
-  return { isBilingual: true, detectedLang: lang, userOriginal: prompt, agentOriginal: original, agentPt: pt };
 }
 
 // Configuração do Tema
@@ -594,20 +476,8 @@ function switchTab(tabKey) {
     chipsContainer.appendChild(btn);
   });
 
-  // Divisor discreto no chat (não mostra no carregamento inicial)
-  if (state.tabInitialized) appendTabDivider(info.badge.replace('MODO: ', ''));
-  state.tabInitialized = true;
-}
-
-function appendTabDivider(label) {
-  const container = document.getElementById('chat-messages');
-  const last = container.lastElementChild;
-  if (last && last.classList.contains('tab-divider')) last.remove(); // evita divisores seguidos
-  const div = document.createElement('div');
-  div.className = 'tab-divider';
-  div.textContent = label;
-  container.appendChild(div);
-  scrollToBottom();
+  // Notificar transição no chat de forma discreta
+  appendSystemNotice(`Você entrou na aba <strong>${tabKey.toUpperCase()}</strong>. Regras ativas aplicadas.`);
 }
 
 // Adicionar Aviso do Sistema no Chat
@@ -785,18 +655,20 @@ async function executePrompt(userPrompt) {
   // 1. Renderizar mensagem do usuário no chat
   appendMessage('user', userPrompt);
 
-  // 2. Verificar Plano B (Desambiguação)
-  const planoBCheck = checkPlanoB(userPrompt, tab);
-  if (planoBCheck.triggered) {
-    showPlanoBBanner(planoBCheck.interpretation, planoBCheck.suggestedPrompt);
-    return;
-  }
+  // 2 e 3. Plano B e Bloqueio de Escopo por palavras-chave: só no Motor Local.
+  // Com um agente real (Azure etc.), quem decide escopo e desambiguação é o próprio agente.
+  if (state.config.provider === 'local') {
+    const planoBCheck = checkPlanoB(userPrompt, tab);
+    if (planoBCheck.triggered) {
+      showPlanoBBanner(planoBCheck.interpretation, planoBCheck.suggestedPrompt);
+      return;
+    }
 
-  // 3. Verificar Bloqueio de Escopo
-  const scopeCheck = checkScopeGuard(userPrompt, tab);
-  if (!scopeCheck.allowed) {
-    appendMessage('agent', scopeCheck.reason, { isScopeBlock: true });
-    return;
+    const scopeCheck = checkScopeGuard(userPrompt, tab);
+    if (!scopeCheck.allowed) {
+      appendMessage('agent', scopeCheck.reason, { isScopeBlock: true });
+      return;
+    }
   }
 
   // 4. Validação da Aba Consultar Arquivo
@@ -815,7 +687,7 @@ async function executePrompt(userPrompt) {
     removeTypingIndicator(typingId);
 
     // Renderizar resposta da IA
-    if (tab === 'traducao') {
+    if (tab === 'traducao' && responseData.agentPt !== undefined) {
       appendBilingualMessage(responseData);
     } else {
       appendMessage('agent', responseData.text, {
@@ -836,20 +708,22 @@ async function processAgentRequest(prompt, tab, activeDoc) {
   const provider = state.config.provider;
   const docContent = activeDoc ? activeDoc.content : '';
 
-  // Agente do Azure AI Foundry (via servidor Node)
-  if (provider === 'foundry') {
-    return await callFoundryAgent(prompt, tab, activeDoc);
+  if (provider === 'local') {
+    // Motor Local (regras fixas por palavra-chave — NÃO é IA)
+    return runLocalExpertEngine(prompt, tab, activeDoc);
   }
 
-  // Se o usuário configurou Gemini ou OpenAI e há chave, chamar a API
-  if (provider === 'gemini' && state.config.apiKey) {
-    return await callGeminiAPI(prompt, tab, activeDoc);
-  } else if (provider === 'openai' && state.config.apiKey) {
-    return await callOpenAIAPI(prompt, tab, activeDoc);
+  if (provider === 'azure') {
+    return await callAzureAgent(prompt, tab, activeDoc);
   }
 
-  // Motor Local Especialista Integrado (Baseado nas regras e conteúdo documental)
-  return runLocalExpertEngine(prompt, tab, activeDoc);
+  // Antes, sem chave ou com provedor não implementado, caía em silêncio no motor local.
+  if (!state.config.apiKey) {
+    throw new Error(`Provedor "${provider}" selecionado, mas sem chave de API. Configure em ⚙️ ou escolha "Motor Local".`);
+  }
+  if (provider === 'gemini') return await callGeminiAPI(prompt, tab, activeDoc);
+  if (provider === 'openai') return await callOpenAIAPI(prompt, tab, activeDoc);
+  throw new Error(`Provedor "${provider}" ainda não foi implementado.`);
 }
 
 // Motor Especialista Local
@@ -1405,21 +1279,11 @@ function setupModalEvents() {
   const modelInput = document.getElementById('ai-model-input');
   const customUrlInput = document.getElementById('custom-url-input');
 
-  const syncProviderFields = () => {
-    const p = providerSelect.value;
-    const noKey = p === 'foundry' || p === 'local';
-    document.getElementById('api-key-group').classList.toggle('hidden', noKey);
-    document.getElementById('custom-url-group').classList.toggle('hidden', p !== 'custom');
-    modelInput.closest('.form-group').classList.toggle('hidden', noKey);
-  };
-  providerSelect.addEventListener('change', syncProviderFields);
-
   openSettingsBtn.onclick = () => {
     providerSelect.value = state.config.provider;
     apiKeyInput.value = state.config.apiKey;
     modelInput.value = state.config.model;
     customUrlInput.value = state.config.customUrl;
-    syncProviderFields();
     settingsModal.classList.remove('hidden');
   };
 
@@ -1452,6 +1316,28 @@ function setupModalEvents() {
   document.getElementById('close-preview-btn').onclick = () => {
     document.getElementById('doc-preview-modal').classList.add('hidden');
   };
+}
+
+// Azure AI Foundry — chamada via servidor (server.js), que guarda a chave em azure-config.json
+async function callAzureAgent(prompt, tab, activeDoc) {
+  if (location.protocol === 'file:') {
+    throw new Error('Abra pelo servidor (iniciar.bat → http://localhost:3000). Aberto direto pelo arquivo não dá para falar com o Azure.');
+  }
+  const res = await fetch('/api/azure', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt,
+      tab,
+      docName: activeDoc ? activeDoc.name : null,
+      docContent: activeDoc ? activeDoc.content : null,
+      previousResponseId: state.azureResponseIds[tab] || null
+    })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  if (data.responseId) state.azureResponseIds[tab] = data.responseId;
+  return { text: data.text, sources: activeDoc ? activeDoc.name : undefined };
 }
 
 // Chamadas Opcionais a Provedores Externos quando o Usuário Configurar Chave

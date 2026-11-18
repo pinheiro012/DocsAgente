@@ -80,45 +80,24 @@ A aplicação já vem com dois documentos pré-carregados para validação imedi
 
 ---
 
-## 🤖 Integração com o Agente do Azure AI Foundry
-
-O site já vem configurado para conversar com o agente **`green-agent-445575jz9p`** do projeto
-`felipeagente-suporte`. O navegador nunca fala direto com o Azure: o `server.js` pega o token,
-chama o agente e devolve a resposta (assim nenhuma credencial fica exposta no site).
-
-### Passo a passo (primeira vez)
-1. Instale o **Node.js 18 ou superior** e o **Azure CLI** (https://aka.ms/installazurecliwindows).
-2. No terminal, faça login na conta que tem acesso ao projeto do Foundry:
-   ```bash
-   az login --tenant b1051c4b-3b94-41ab-9441-e73a72342fdd
-   ```
-3. Inicie o site com `iniciar.bat` (ou `npm start`) e abra http://localhost:3000.
-4. No rodapé da barra lateral deve aparecer **"Motor: Azure AI Foundry"** e uma mensagem
-   "Conectado ao agente green-agent-445575jz9p".
-
-> O site **precisa** ser aberto pelo servidor (http://localhost:3000). Abrindo o `index.html` direto, o agente do Foundry não funciona.
-
-### Como funciona
-| Item | Detalhe |
-|---|---|
-| Rota do site | `POST /api/foundry/chat` e `GET /api/foundry/status` (no `server.js`) |
-| API do Foundry | `POST {endpoint}/openai/v1/responses` com `agent_reference` |
-| Histórico | Uma conversa do Foundry por aba (o agente lembra do que foi dito naquela aba) |
-| Contexto enviado | Nome da aba + conteúdo do arquivo ativo (Comparar envia A e B; Conhecimento envia a base toda; Criar envia o formulário) |
-| Autenticação | `az login` (padrão) ou Service Principal no `.env` |
-
-### Configurações opcionais (`.env`)
-Copie `.env.example` para `.env` para trocar endpoint, nome/versão do agente ou usar um
-Service Principal (`AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET`) em vez do Azure CLI.
-
-### Erros comuns
-- **"Azure CLI não encontrado"** → instale o Azure CLI ou preencha o Service Principal no `.env`.
-- **403 / Acesso negado** → a conta precisa da função **Azure AI User** no projeto do Foundry (IAM do recurso).
-- **404** → confira o endpoint e o nome do agente.
-- Para voltar ao modo offline, clique em **Configurar Motor IA** e escolha **Motor Local**.
-
----
-
 ## ⚙️ Configuração de IA (Opcional)
 - **Modo Local / Embutido (Padrão):** Funciona 100% offline, sem necessidade de chaves de API externas.
 - **Provedores de Nuvem (Opcional):** Suporte nativo no botão de configurações para inserir chave do **Google Gemini** (Gemini 2.5 / 1.5 Flash), **OpenAI** (GPT-4o) ou servidores locais (Ollama).
+
+---
+
+## ☁️ Conectar ao Agente do Azure AI Foundry
+O site chama o agente **green-agent-445575jz9p** pela Responses API do projeto. Os dados já estão no `azure-config.json`.
+
+O Foundry **não aceita chave de API para agentes**, só login do Azure. Por isso:
+1. Instale o **Azure CLI** (uma vez): https://aka.ms/installazurecliwindows
+2. Abra um terminal novo e rode `az login`. Entre com a conta que tem acesso ao projeto do Foundry.
+3. Rode `iniciar.bat` e acesse `http://localhost:3000`. Não abra o `index.html` direto.
+4. No topo deve aparecer `Motor: Azure AI Foundry`.
+
+Erros comuns (aparecem no chat):
+- **401**: rode `az login` de novo.
+- **403**: sua conta precisa da função **Azure AI User** no projeto (Foundry → Configurações → Usuários / IAM).
+- **404**: confira `projectEndpoint` e `agentName` no `azure-config.json`.
+
+As instruções do agente são as que estão configuradas no Foundry. O site envia só a aba atual, o arquivo selecionado e a pergunta.
